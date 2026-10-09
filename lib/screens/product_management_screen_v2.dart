@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:barcode/barcode.dart' as bc;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:invoiso/common/constants.dart';
 import 'package:invoiso/providers/repositories.dart';
@@ -71,6 +73,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
   final _supplierNameController = TextEditingController();
   final _skuCodeController = TextEditingController();
   final _notesController = TextEditingController();
+  final _barcodeController = TextEditingController();
   DateTime? _expiryDate;
   DateTime? _manufactureDate;
   String _datePattern = 'dd/MM/yyyy';
@@ -391,6 +394,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     _supplierNameController.dispose();
     _skuCodeController.dispose();
     _notesController.dispose();
+    _barcodeController.dispose();
     _searchFocusNode.dispose();
     _horizontalScrollController.dispose();
     _searchDebounce?.cancel();
@@ -454,6 +458,9 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
+      final barcodeValue = _barcodeController.text.trim().isNotEmpty
+          ? _barcodeController.text.trim()
+          : _generateBarcodeValue();
       final newProduct = Product(
         id: const Uuid().v4(),
         name: _nameController.text.trim(),
@@ -472,6 +479,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
         unit: _selectedUnit.trim(),
         unlimitedStock: _unlimitedStock,
         priceIncludesTax: _priceIncludesTax,
+        barcode: barcodeValue,
       );
 
       await ref.read(productRepositoryProvider).insertProduct(newProduct);
@@ -519,6 +527,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     _supplierNameController.clear();
     _skuCodeController.clear();
     _notesController.clear();
+    _barcodeController.clear();
     if (mounted) {
       setState(() {
       _selectedUnit = '';
@@ -535,6 +544,91 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
 
   static DateTime? _parseIsoDate(String? s) =>
       (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
+
+  /// Generates a short unique barcode value (12 uppercase alphanumeric chars).
+  static String _generateBarcodeValue() =>
+      const Uuid().v4().replaceAll('-', '').substring(0, 12).toUpperCase();
+
+  /// Renders a Code 128 barcode SVG for [value].
+  Widget _barcodePreview(String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    try {
+      final svg = bc.Barcode.code128().toSvg(
+        value.trim(),
+        width: 260,
+        height: 72,
+        drawText: true,
+        fontHeight: 12,
+      );
+      return SvgPicture.string(svg, width: 260, height: 72);
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
+  }
+
+  /// Barcode field + live preview used in both the Add panel and Edit dialog.
+  Widget _buildBarcodeSection({
+    required TextEditingController controller,
+    required VoidCallback onChanged,
+    bool readOnly = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: controller,
+                readOnly: readOnly,
+                decoration: InputDecoration(
+                  labelText: 'Barcode',
+                  hintText: 'Leave blank to auto-generate on save',
+                  prefixIcon: const Icon(Icons.qr_code, size: 20),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppBorderRadius.xsmall),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                onChanged: (_) => onChanged(),
+              ),
+            ),
+            if (!readOnly) ...[
+              const SizedBox(width: 8),
+              Tooltip(
+                message: 'Generate new barcode',
+                child: OutlinedButton(
+                  onPressed: () {
+                    controller.text = _generateBarcodeValue();
+                    onChanged();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppBorderRadius.xsmall),
+                    ),
+                  ),
+                  child: const Icon(Icons.refresh, size: 18),
+                ),
+              ),
+            ],
+          ],
+        ),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (_, val, __) {
+            final preview = _barcodePreview(val.text);
+            if (val.text.trim().isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Center(child: preview),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -2599,6 +2693,11 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
           _buildFormField(_hsnCodeController, l10n.productMgmtHsnSacLabel, Icons.qr_code,
               maxLength: 100, required: false),
         ],
+        const SizedBox(height: 16),
+        _buildBarcodeSection(
+          controller: _barcodeController,
+          onChanged: () => setState(() {}),
+        ),
         const SizedBox(height: 20),
         _sectionLabelV2(l10n.productMgmtSectionPricing),
         Row(
@@ -2932,6 +3031,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     final supplierCtrl = TextEditingController(text: metadata?.supplierName ?? '');
     final skuCtrl = TextEditingController(text: metadata?.skuCode ?? '');
     final notesCtrl = TextEditingController(text: metadata?.notes ?? '');
+    final barcodeCtrl = TextEditingController(text: product.barcode ?? '');
     final formKey = GlobalKey<FormState>();
 
     String itemType = product.type;
@@ -2961,6 +3061,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
       supplierCtrl.dispose();
       skuCtrl.dispose();
       notesCtrl.dispose();
+      barcodeCtrl.dispose();
     }
 
     await showDialog(
@@ -3019,6 +3120,9 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
             if (!await _confirmIfSellingAtLoss(price, purchasePrice)) return;
             setDialogState(() => isSaving = true);
             try {
+              final updatedBarcode = barcodeCtrl.text.trim().isNotEmpty
+                  ? barcodeCtrl.text.trim()
+                  : (product.barcode ?? _generateBarcodeValue());
               final updated = Product(
                 id: product.id,
                 name: nameCtrl.text.trim(),
@@ -3034,6 +3138,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                 unit: unit.trim(),
                 unlimitedStock: unlimitedStock,
                 priceIncludesTax: priceIncludesTax,
+                barcode: updatedBarcode,
               );
               await ref.read(productRepositoryProvider).updateProduct(updated);
               await ref.read(productRepositoryProvider).upsertProductMetadata(
@@ -3167,6 +3272,12 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                               const SizedBox(height: 16),
                               field(hsnCtrl, l10n.productMgmtColHsnSac, Icons.qr_code, maxLength: 100),
                             ],
+                            const SizedBox(height: 16),
+                            _buildBarcodeSection(
+                              controller: barcodeCtrl,
+                              onChanged: () => setDialogState(() {}),
+                              readOnly: !isEdit,
+                            ),
                             const SizedBox(height: 20),
                             sectionLabel(l10n.productMgmtSectionPricing),
                             Row(
