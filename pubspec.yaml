@@ -46,6 +46,7 @@ dependencies:
   thermal_printer: ^1.0.5
   flutter_esc_pos_utils: ^1.0.1
   mobile_scanner: ^5.2.3
+  barcode: ^2.2.9
   flutter_libserialport: ^0.6.0
   usb_serial: ^0.5.1
 
