@@ -4332,195 +4332,253 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
   }
 
   Widget _customerDetailsFormV2() {
-    return _flatCardV2(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.person_outline,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              const Text(
-                'CUSTOMER DETAILS',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    if (nameController.text.trim().isNotEmpty &&
-                        (selectedCustomer == null || !_customerFormMatchesSelected))
-                      TextButton.icon(
-                        onPressed: _isSavingCustomer ? null : _saveCustomer,
-                        icon: _isSavingCustomer
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.person_add_alt_outlined, size: 16),
-                        label: Text(
-                            _isSavingCustomer ? AppLocalizations.of(context)!.createInvoiceSavingEllipsisLabel : AppLocalizations.of(context)!.createInvoiceSaveCustomerLabel),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        ),
-                      ),
-                    OutlinedButton.icon(
-                      onPressed: _showCustomerPickerDialogV2,
-                      icon: const Icon(Icons.person_search_outlined, size: 16),
-                      label: Text(AppLocalizations.of(context)!.createInvoiceSelectExistingCustomerButton),
-                      style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppBorderRadius.xsmall)),
-                      ),
-                    ),
-                    if (selectedCustomer != null &&
-                        selectedCustomer!.id.trim().isNotEmpty) ...[
-                      if (!_customerFieldsUnlocked)
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          tooltip: 'Edit customer details',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () =>
-                              setState(() => _customerFieldsUnlocked = true),
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, size: 18),
-                        tooltip: AppLocalizations.of(context)!.createInvoiceRefreshCustomerTooltip,
-                        visualDensity: VisualDensity.compact,
-                        onPressed: _refreshCustomerFromRecord,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        tooltip: AppLocalizations.of(context)!.createInvoiceClearCustomerTooltip,
-                        visualDensity: VisualDensity.compact,
-                        onPressed: _clearCustomerSelection,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  _customerDetailsExpanded
-                      ? Icons.expand_less
-                      : Icons.expand_more,
-                  size: 20,
-                ),
-                visualDensity: VisualDensity.compact,
-                tooltip: _customerDetailsExpanded
-                    ? MaterialLocalizations.of(context).expandedIconTapHint
-                    : MaterialLocalizations.of(context).collapsedIconTapHint,
-                onPressed: () {
-                  if (!mounted) return;
-                  setState(() =>
-                      _customerDetailsExpanded = !_customerDetailsExpanded);
-                },
-              ),
-            ],
-          ),
-          if (_customerDetailsExpanded) ...[
-          const SizedBox(height: 2),
-          if (selectedCustomer == null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                'New or walk-in customer — enter their details below.',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontStyle: FontStyle.italic,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 650;
+        return _flatCardV2(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: nameController,
-                  readOnly: _customerFieldsLocked,
-                  onChanged: (_) => setState(() {}),
-                  decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldCustomerNameRequiredLabel),
-                ),
+              Row(
+                children: [
+                  Icon(Icons.person_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'CUSTOMER DETAILS',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        if (nameController.text.trim().isNotEmpty &&
+                            (selectedCustomer == null || !_customerFormMatchesSelected))
+                          TextButton.icon(
+                            onPressed: _isSavingCustomer ? null : _saveCustomer,
+                            icon: _isSavingCustomer
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.person_add_alt_outlined, size: 16),
+                            label: Text(
+                                _isSavingCustomer ? AppLocalizations.of(context)!.createInvoiceSavingEllipsisLabel : AppLocalizations.of(context)!.createInvoiceSaveCustomerLabel),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: _showCustomerPickerDialogV2,
+                          icon: const Icon(Icons.person_search_outlined, size: 16),
+                          label: Text(AppLocalizations.of(context)!.createInvoiceSelectExistingCustomerButton),
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppBorderRadius.xsmall)),
+                          ),
+                        ),
+                        if (selectedCustomer != null &&
+                            selectedCustomer!.id.trim().isNotEmpty) ...[
+                          if (!_customerFieldsUnlocked)
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              tooltip: 'Edit customer details',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () =>
+                                  setState(() => _customerFieldsUnlocked = true),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 18),
+                            tooltip: AppLocalizations.of(context)!.createInvoiceRefreshCustomerTooltip,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _refreshCustomerFromRecord,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: AppLocalizations.of(context)!.createInvoiceClearCustomerTooltip,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _clearCustomerSelection,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      _customerDetailsExpanded
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                      size: 20,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: _customerDetailsExpanded
+                        ? MaterialLocalizations.of(context).expandedIconTapHint
+                        : MaterialLocalizations.of(context).collapsedIconTapHint,
+                    onPressed: () {
+                      if (!mounted) return;
+                      setState(() =>
+                          _customerDetailsExpanded = !_customerDetailsExpanded);
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: businessNameController,
-                  readOnly: _customerFieldsLocked,
-                  onChanged: (_) => setState(() {}),
-                  decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldBusinessNameLabel),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: phoneController,
-                  readOnly: _customerFieldsLocked,
-                  onChanged: (_) => setState(() {}),
-                  decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldPhoneLabel),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (_showGstFields) ...[
-                Expanded(
-                  child: TextField(
-                    controller: gstinController,
+              if (_customerDetailsExpanded) ...[
+                const SizedBox(height: 2),
+                if (selectedCustomer == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      'New or walk-in customer — enter their details below.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                if (isMobile) ...[
+                  TextField(
+                    controller: nameController,
                     readOnly: _customerFieldsLocked,
                     onChanged: (_) => setState(() {}),
-                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldGstinVatLabel),
+                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldCustomerNameRequiredLabel),
                   ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: TextField(
-                  controller: emailController,
-                  readOnly: _customerFieldsLocked,
-                  onChanged: (_) => setState(() {}),
-                  decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldEmailLabel),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: addressController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldAddressLabel,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.open_in_full, size: 18),
-                        tooltip: AppLocalizations.of(context)!.tooltipEditInLargerView,
-                        onPressed: () => _editLongTextDialogV2(
-                          title: AppLocalizations.of(context)!.fieldAddressLabel,
-                          controller: addressController,
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: businessNameController,
+                    readOnly: _customerFieldsLocked,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldBusinessNameLabel),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    readOnly: _customerFieldsLocked,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldPhoneLabel),
+                  ),
+                ] else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: nameController,
+                          readOnly: _customerFieldsLocked,
+                          onChanged: (_) => setState(() {}),
+                          decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldCustomerNameRequiredLabel),
                         ),
-                      )),
-                ),
-              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: businessNameController,
+                          readOnly: _customerFieldsLocked,
+                          onChanged: (_) => setState(() {}),
+                          decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldBusinessNameLabel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: phoneController,
+                          readOnly: _customerFieldsLocked,
+                          onChanged: (_) => setState(() {}),
+                          decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldPhoneLabel),
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+                if (isMobile) ...[
+                  if (_showGstFields) ...[
+                    TextField(
+                      controller: gstinController,
+                      readOnly: _customerFieldsLocked,
+                      onChanged: (_) => setState(() {}),
+                      decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldGstinVatLabel),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TextField(
+                    controller: emailController,
+                    readOnly: _customerFieldsLocked,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldEmailLabel),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressController,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldAddressLabel,
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.open_in_full, size: 18),
+                          tooltip: AppLocalizations.of(context)!.tooltipEditInLargerView,
+                          onPressed: () => _editLongTextDialogV2(
+                            title: AppLocalizations.of(context)!.fieldAddressLabel,
+                            controller: addressController,
+                          ),
+                        )),
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      if (_showGstFields) ...[
+                        Expanded(
+                          child: TextField(
+                            controller: gstinController,
+                            readOnly: _customerFieldsLocked,
+                            onChanged: (_) => setState(() {}),
+                            decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldGstinVatLabel),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: TextField(
+                          controller: emailController,
+                          readOnly: _customerFieldsLocked,
+                          onChanged: (_) => setState(() {}),
+                          decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldEmailLabel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: addressController,
+                          onChanged: (_) => setState(() {}),
+                          decoration: _flatFieldDecorationV2(AppLocalizations.of(context)!.fieldAddressLabel,
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.open_in_full, size: 18),
+                                tooltip: AppLocalizations.of(context)!.tooltipEditInLargerView,
+                                onPressed: () => _editLongTextDialogV2(
+                                  title: AppLocalizations.of(context)!.fieldAddressLabel,
+                                  controller: addressController,
+                                ),
+                              )),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ],
           ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
