@@ -224,6 +224,25 @@ void main() {
     expect(companyInfo['pan_number'], '');
     expect(companyInfo['fssai_code'], '');
 
+    // v52: new tables and product column
+    final tables = (await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    )).map((r) => r['name'] as String).toSet();
+    expect(tables, containsAll([
+      'suppliers',
+      'purchase_orders',
+      'purchase_order_items',
+      'stock_movements',
+      'menu_categories',
+      'menu_items',
+      'recipe_ingredients',
+    ]));
+
+    final productCols = (await db.rawQuery('PRAGMA table_info(products)'))
+        .map((r) => r['name'] as String)
+        .toSet();
+    expect(productCols, contains('low_stock_threshold'));
+
     await db.close();
   });
 }

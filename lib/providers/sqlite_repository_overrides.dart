@@ -5,10 +5,14 @@ import 'package:invoiso/repositories/sqlite/sqlite_company_info_repository.dart'
 import 'package:invoiso/repositories/sqlite/sqlite_customer_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_invoice_item_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_invoice_repository.dart';
+import 'package:invoiso/repositories/sqlite/sqlite_menu_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_payment_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_product_repository.dart';
+import 'package:invoiso/repositories/sqlite/sqlite_purchase_order_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_report_repository.dart';
 import 'package:invoiso/repositories/sqlite/sqlite_settings_repository.dart';
+import 'package:invoiso/repositories/sqlite/sqlite_stock_movement_repository.dart';
+import 'package:invoiso/repositories/sqlite/sqlite_supplier_repository.dart';
 
 final sqliteRepositoryOverrides = <Override>[
   customerRepositoryProvider.overrideWith(
@@ -37,5 +41,17 @@ final sqliteRepositoryOverrides = <Override>[
   ),
   authRepositoryProvider.overrideWith(
         (ref) => SqliteAuthRepository(),
+  ),
+  supplierRepositoryProvider.overrideWith(
+        (ref) => SqliteSupplierRepository(),
+  ),
+  purchaseOrderRepositoryProvider.overrideWith(
+        (ref) => SqlitePurchaseOrderRepository(),
+  ),
+  stockMovementRepositoryProvider.overrideWith(
+        (ref) => SqliteStockMovementRepository(),
+  ),
+  menuRepositoryProvider.overrideWith(
+        (ref) => SqliteMenuRepository(),
   ),
 ];

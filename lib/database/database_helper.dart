@@ -16,7 +16,7 @@ class DatabaseHelper {
   static String? get path => _path;
   static Database? _database;
   static String _dbFileName = 'invoice_manager.db';
-  final dbVersion = 51;
+  final dbVersion = 52;
 
   /// Startup only, before anything has opened a connection yet — just points
   /// at the right file for the first `_initDB()` call. No close/reopen, so
@@ -58,6 +58,31 @@ class DatabaseHelper {
   Future<void> upgradeDbForTest(Database db, int oldVersion, int newVersion) =>
       _upgradeDB(db, oldVersion, newVersion);
 
+  /// Opens an in-memory database with the current schema — for unit tests.
+  @visibleForTesting
+  Future<Database> openDbForTest() async {
+    final db = await databaseFactory.openDatabase(
+      inMemoryDatabasePath,
+      options: OpenDatabaseOptions(
+        version: dbVersion,
+        onCreate: _createDB,
+      ),
+    );
+    return db;
+  }
+
+  /// Injects an already-open Database into the singleton so services use it.
+  @visibleForTesting
+  Future<void> injectDatabaseForTest(Database db) async {
+    _database = db;
+  }
+
+  /// Clears the injected database so the next call to [database] opens fresh.
+  @visibleForTesting
+  void resetForTest() {
+    _database = null;
+  }
+
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE customers (
@@ -87,7 +112,8 @@ class DatabaseHelper {
         unit TEXT DEFAULT '',
         unlimited_stock INTEGER DEFAULT 0,
         price_includes_tax INTEGER DEFAULT 0,
-        barcode TEXT
+        barcode TEXT,
+        low_stock_threshold INTEGER DEFAULT 10
       )
     ''');
 
@@ -229,6 +255,130 @@ class DatabaseHelper {
         date_paid        TEXT NOT NULL,
         payment_method   TEXT,
         notes            TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE suppliers (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT DEFAULT '',
+        phone TEXT DEFAULT '',
+        address TEXT DEFAULT '',
+        gstin TEXT DEFAULT '',
+        business_name TEXT DEFAULT '',
+        contact_person TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        created_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE purchase_orders (
+        id TEXT PRIMARY KEY,
+        supplier_id TEXT NOT NULL,
+        supplier_name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        expected_date TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        notes TEXT DEFAULT '',
+        total_amount REAL DEFAULT 0.0,
+        created_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE purchase_order_items (
+        id TEXT PRIMARY KEY,
+        po_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity REAL NOT NULL DEFAULT 1,
+        unit_cost REAL NOT NULL DEFAULT 0.0,
+        received_qty REAL DEFAULT 0,
+        notes TEXT DEFAULT ''
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE stock_movements (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        movement_type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        before_stock INTEGER NOT NULL DEFAULT 0,
+        after_stock INTEGER NOT NULL DEFAULT 0,
+        reference_id TEXT,
+        reference_type TEXT,
+        notes TEXT DEFAULT '',
+        date TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE product_batches (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        batch_number TEXT NOT NULL,
+        expiry_date TEXT,
+        manufacture_date TEXT,
+        quantity REAL NOT NULL DEFAULT 0,
+        remaining_qty REAL NOT NULL DEFAULT 0,
+        cost_per_unit REAL DEFAULT 0.0,
+        supplier_id TEXT,
+        supplier_name TEXT DEFAULT '',
+        received_date TEXT NOT NULL,
+        notes TEXT DEFAULT ''
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE wastage_entries (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        reason TEXT DEFAULT '',
+        date TEXT NOT NULL,
+        batch_id TEXT,
+        notes TEXT DEFAULT '',
+        created_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE menu_categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        display_order INTEGER DEFAULT 0,
+        active INTEGER DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE menu_items (
+        id TEXT PRIMARY KEY,
+        category_id TEXT NOT NULL,
+        category_name TEXT DEFAULT '',
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        price REAL NOT NULL DEFAULT 0.0,
+        tax_rate REAL DEFAULT 0.0,
+        available INTEGER DEFAULT 1,
+        display_order INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE recipe_ingredients (
+        id TEXT PRIMARY KEY,
+        menu_item_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity REAL NOT NULL DEFAULT 0,
+        unit TEXT DEFAULT ''
       )
     ''');
 
@@ -849,6 +999,152 @@ class DatabaseHelper {
           db, 51, 'add_barcode_to_products', () async {
         await db.execute(
             'ALTER TABLE products ADD COLUMN barcode TEXT');
+      });
+    }
+
+    if (oldVersion < 52) {
+      await _runMigrationStep(db, 52, 'add_low_stock_threshold_to_products', () async {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN low_stock_threshold INTEGER DEFAULT 10');
+      });
+      await _runMigrationStep(db, 52, 'create_suppliers_table', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS suppliers (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT DEFAULT '',
+            phone TEXT DEFAULT '',
+            address TEXT DEFAULT '',
+            gstin TEXT DEFAULT '',
+            business_name TEXT DEFAULT '',
+            contact_person TEXT DEFAULT '',
+            notes TEXT DEFAULT '',
+            created_at TEXT
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name COLLATE NOCASE)');
+      });
+      await _runMigrationStep(db, 52, 'create_purchase_orders_table', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS purchase_orders (
+            id TEXT PRIMARY KEY,
+            supplier_id TEXT NOT NULL,
+            supplier_name TEXT NOT NULL,
+            date TEXT NOT NULL,
+            expected_date TEXT,
+            status TEXT NOT NULL DEFAULT 'draft',
+            notes TEXT DEFAULT '',
+            total_amount REAL DEFAULT 0.0,
+            created_at TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS purchase_order_items (
+            id TEXT PRIMARY KEY,
+            po_id TEXT NOT NULL,
+            product_id TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            quantity REAL NOT NULL DEFAULT 1,
+            unit_cost REAL NOT NULL DEFAULT 0.0,
+            received_qty REAL DEFAULT 0,
+            notes TEXT DEFAULT ''
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_po_supplier ON purchase_orders(supplier_id)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_po_items_po ON purchase_order_items(po_id)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_po_date ON purchase_orders(date)');
+      });
+      await _runMigrationStep(db, 52, 'create_stock_movements_table', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS stock_movements (
+            id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            movement_type TEXT NOT NULL,
+            quantity REAL NOT NULL,
+            before_stock INTEGER NOT NULL DEFAULT 0,
+            after_stock INTEGER NOT NULL DEFAULT 0,
+            reference_id TEXT,
+            reference_type TEXT,
+            notes TEXT DEFAULT '',
+            date TEXT NOT NULL
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_stock_mov_product ON stock_movements(product_id, date)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_stock_mov_date ON stock_movements(date)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_stock_mov_type ON stock_movements(movement_type)');
+      });
+      await _runMigrationStep(db, 52, 'create_product_batches_table', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS product_batches (
+            id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL,
+            batch_number TEXT NOT NULL,
+            expiry_date TEXT,
+            manufacture_date TEXT,
+            quantity REAL NOT NULL DEFAULT 0,
+            remaining_qty REAL NOT NULL DEFAULT 0,
+            cost_per_unit REAL DEFAULT 0.0,
+            supplier_id TEXT,
+            supplier_name TEXT DEFAULT '',
+            received_date TEXT NOT NULL,
+            notes TEXT DEFAULT ''
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_batches_product ON product_batches(product_id)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_batches_expiry ON product_batches(expiry_date)');
+      });
+      await _runMigrationStep(db, 52, 'create_wastage_entries_table', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS wastage_entries (
+            id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            quantity REAL NOT NULL,
+            reason TEXT DEFAULT '',
+            date TEXT NOT NULL,
+            batch_id TEXT,
+            notes TEXT DEFAULT '',
+            created_at TEXT
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_wastage_product ON wastage_entries(product_id, date)');
+      });
+      await _runMigrationStep(db, 52, 'create_menu_tables', () async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS menu_categories (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            display_order INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS menu_items (
+            id TEXT PRIMARY KEY,
+            category_id TEXT NOT NULL,
+            category_name TEXT DEFAULT '',
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            price REAL NOT NULL DEFAULT 0.0,
+            tax_rate REAL DEFAULT 0.0,
+            available INTEGER DEFAULT 1,
+            display_order INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS recipe_ingredients (
+            id TEXT PRIMARY KEY,
+            menu_item_id TEXT NOT NULL,
+            product_id TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            quantity REAL NOT NULL DEFAULT 0,
+            unit TEXT DEFAULT ''
+          )
+        ''');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_menu_items_cat ON menu_items(category_id)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_recipe_item ON recipe_ingredients(menu_item_id)');
       });
     }
   }

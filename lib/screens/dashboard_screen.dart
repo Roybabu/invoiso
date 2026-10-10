@@ -44,7 +44,11 @@ import 'package:invoiso/screens/product_management_screen_v2.dart';
 // import 'package:invoiso/screens/invoice_management_screen.dart';
 import 'package:invoiso/screens/invoice_management_screen_v2.dart';
 import 'package:invoiso/screens/auth/login_screen.dart';
+import 'package:invoiso/screens/purchase_order_screen.dart';
 import 'package:invoiso/screens/reports_screen.dart';
+import 'package:invoiso/screens/restaurant_menu_screen.dart';
+import 'package:invoiso/screens/stock_movement_screen.dart';
+import 'package:invoiso/screens/supplier_management_screen.dart';
 
 // invoice.type is a raw internal value ('Invoice'/'Quotation'/'Receipt') used
 // for comparisons throughout this file — only the displayed label is localized.
@@ -368,6 +372,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           currentUser: _currentUser,
           openAccessibilityToken: _accessibilityJumpToken,
         );
+      case 9:
+        return SupplierManagementScreen(user: _currentUser);
+      case 10:
+        return PurchaseOrderScreen(user: _currentUser);
+      case 11:
+        return StockMovementScreen(user: _currentUser);
+      case 12:
+        return RestaurantMenuScreen(user: _currentUser);
       default:
         return Center(
             child:
@@ -834,6 +846,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     _buildNavItem(8, Icons.settings_outlined, Icons.settings,
                         AppLocalizations.of(context)!.navSettings,
                         showDot: _hasUpdate),
+                    const Divider(height: 16),
+                    _buildNavItem(9, Icons.local_shipping_outlined,
+                        Icons.local_shipping, 'Suppliers'),
+                    _buildNavItem(10, Icons.shopping_cart_outlined,
+                        Icons.shopping_cart, 'Purchase Orders'),
+                    _buildNavItem(11, Icons.swap_vert_outlined,
+                        Icons.swap_vert, 'Stock History'),
+                    _buildNavItem(12, Icons.restaurant_menu_outlined,
+                        Icons.restaurant_menu, 'Menu'),
                   ],
                 ),
               ),
