@@ -2243,9 +2243,107 @@ class _InvoiceManagementScreenV2State
     ];
   }
 
+  Widget _invoiceMobileCardV2(Invoice invoice, int index, bool isEven) {
+    final isSelected = _selectedIds.contains(invoice.id);
+    final dateStr = AppFormatters.formatShortDate(invoice.date, pattern: _datePattern);
+    return InkWell(
+      onTap: () => InvoicePdfServices.showInvoiceDetails(context, invoice),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+              : (isEven
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).colorScheme.surfaceContainer),
+          border: Border(
+            bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            left: isSelected
+                ? BorderSide(color: Theme.of(context).primaryColor, width: 3)
+                : BorderSide.none,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 36,
+              child: Checkbox(
+                value: isSelected,
+                onChanged: (_) => _toggleOne(invoice.id),
+                activeColor: Theme.of(context).primaryColor,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '#${invoice.invoiceNumber ?? invoice.id}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                        ),
+                      ),
+                      Text(
+                        '${invoice.currencySymbol} ${invoice.total.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 14.5, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline,
+                          size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          invoice.customer.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text(dateStr,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      const SizedBox(width: 10),
+                      if (widget.filterType == 'Invoice')
+                        _buildPaymentStatusChip(invoice.paymentStatus),
+                      if (widget.filterType == 'Quotation')
+                        _buildQuotationStatusChip(invoice.status),
+                      const Spacer(),
+                      _rowActionsV2(invoice, false),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildV2(BuildContext context) {
     return LayoutBuilder(builder: (context, outerConstraints) {
       final isWide = outerConstraints.maxWidth >= 1000;
+      final isMobile = outerConstraints.maxWidth < 650;
 
       return Scaffold(
         backgroundColor: Theme.of(context).brightness == Brightness.dark ? null : Colors.grey[50],
@@ -2261,7 +2359,7 @@ class _InvoiceManagementScreenV2State
           children: [
             Container(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 12 : 20),
               child: _searchFilterRowV2(isWide),
             ),
             AnimatedSwitcher(
@@ -2269,7 +2367,7 @@ class _InvoiceManagementScreenV2State
               child: _selectedIds.isEmpty
                   ? const SizedBox.shrink(key: ValueKey('no_selection'))
                   : Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      padding: EdgeInsets.fromLTRB(isMobile ? 8 : 20, 12, isMobile ? 8 : 20, 0),
                       child: _bulkActionsBarV2(),
                     ),
             ),
@@ -2284,7 +2382,7 @@ class _InvoiceManagementScreenV2State
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: AppLayout.maxWidthWide),
                               child: SingleChildScrollView(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 20),
                                 child: Card(
                                   elevation: 2,
                                   shadowColor: Colors.black.withValues(alpha: 0.1),
@@ -2293,12 +2391,14 @@ class _InvoiceManagementScreenV2State
                                   clipBehavior: Clip.antiAlias,
                                   child: Column(
                                     children: [
-                                      _tableHeaderRowV2(isWide),
+                                      if (!isMobile) _tableHeaderRowV2(isWide),
                                       ..._pageInvoices.asMap().entries.map((entry) {
                                         final invoice = entry.value;
                                         final index = entry.key;
                                         final globalIndex = (_currentPage * _pageSize) + index + 1;
-                                        return _invoiceRowV2(invoice, globalIndex, index.isEven, isWide);
+                                        return isMobile
+                                            ? _invoiceMobileCardV2(invoice, index, index.isEven)
+                                            : _invoiceRowV2(invoice, globalIndex, index.isEven, isWide);
                                       }),
                                     ],
                                   ),
@@ -2310,7 +2410,7 @@ class _InvoiceManagementScreenV2State
             if (_pageInvoices.isNotEmpty)
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainer,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                padding: EdgeInsets.symmetric(vertical: 14, horizontal: isMobile ? 8 : 20),
                 child: _paginationV2(isWide),
               ),
           ],

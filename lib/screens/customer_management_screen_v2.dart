@@ -1887,12 +1887,165 @@ class _CustomerManagementScreenV2State extends ConsumerState<CustomerManagementS
     );
   }
 
+  Widget _customerMobileCardV2(Customer c, int index) {
+    final serial = _currentPage * _pageSize + index + 1;
+    final outstanding = _outstandingByCustomer[c.id] ?? 0;
+    final hasOutstanding = outstanding > 0.005;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _avatarV2(c),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(c.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ),
+                    if (hasOutstanding)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          '$_outstandingCurrencySymbol ${outstanding.toStringAsFixed(2)}',
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.orange.shade800),
+                        ),
+                      ),
+                  ],
+                ),
+                if (c.businessName.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(c.businessName,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                ],
+                if (c.phone.isNotEmpty || c.email.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 2,
+                    children: [
+                      if (c.phone.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.phone_outlined,
+                                size: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 3),
+                            Text(c.phone,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      if (c.email.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.email_outlined,
+                                size: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 3),
+                            Text(c.email,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text('$serial',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _viewCustomerV2(c),
+                      tooltip: AppLocalizations.of(context)!.actionView,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                    if (widget.onViewCustomerStatement != null)
+                      IconButton(
+                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => widget.onViewCustomerStatement!(c),
+                        tooltip:
+                            AppLocalizations.of(context)!.customerMgmtViewStatementTooltip,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.payments_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _receivePayment(c),
+                      tooltip: 'Receive Payment',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _editCustomerV2(c),
+                      tooltip: AppLocalizations.of(context)!.actionEdit,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                    if (widget.user.isAdmin())
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        visualDensity: VisualDensity.compact,
+                        color: Theme.of(context).colorScheme.error,
+                        onPressed: () => _deleteCustomerV2(c),
+                        tooltip: AppLocalizations.of(context)!.actionDelete,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // This widget sizes itself naturally instead of relying on `Expanded` to
   // fill whatever space a bounded ancestor gives it — the page itself is a
   // CustomScrollView (see _buildV2), so the list here is shrink-wrapped
   // (its own scrolling disabled) and the page just scrolls further if the
   // natural content (header + rows + pagination) doesn't fit the viewport.
-  Widget _tableSectionV2() {
+  Widget _tableSectionV2({bool isMobile = false}) {
     final totalPages =
         _filteredTotal == 0 ? 1 : (_filteredTotal / _pageSize).ceil();
     final pageItems = _pageCustomers;
@@ -1903,7 +2056,7 @@ class _CustomerManagementScreenV2State extends ConsumerState<CustomerManagementS
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _tableHeaderRowV2(),
+          if (!isMobile) _tableHeaderRowV2(),
           _isLoading && _pageCustomers.isEmpty
               ? const SizedBox(
                   height: 240, child: Center(child: CircularProgressIndicator()))
@@ -1913,7 +2066,9 @@ class _CustomerManagementScreenV2State extends ConsumerState<CustomerManagementS
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: pageItems.length,
-                      itemBuilder: (context, index) => _tableRowV2(pageItems[index], index),
+                      itemBuilder: (context, index) => isMobile
+                          ? _customerMobileCardV2(pageItems[index], index)
+                          : _tableRowV2(pageItems[index], index),
                     ),
           _paginationV2(pageItems, totalPages),
         ],
@@ -2054,6 +2209,7 @@ class _CustomerManagementScreenV2State extends ConsumerState<CustomerManagementS
             // from the table, and its own width scales a bit with the
             // window on large screens (capped so it doesn't get unwieldy)
             // while dropping to full width (minus margins) on narrow ones.
+            final isMobile = constraints.maxWidth < 650;
             final panelWidth = constraints.maxWidth < 750
                 ? constraints.maxWidth - 32
                 : (constraints.maxWidth * 0.42).clamp(520.0, 680.0);
@@ -2104,7 +2260,7 @@ class _CustomerManagementScreenV2State extends ConsumerState<CustomerManagementS
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       sliver: SliverToBoxAdapter(
-                        child: _tableSectionV2(),
+                        child: _tableSectionV2(isMobile: isMobile),
                       ),
                     ),
                   ],

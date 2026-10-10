@@ -2532,6 +2532,101 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     );
   }
 
+  Widget _productMobileCardV2(Product p, int index) {
+    final serial = _currentPage * _pageSize + index + 1;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    if ((p.aliasName ?? '').isNotEmpty)
+                      Text('(${p.aliasName})',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('$_currencySymbol${p.price.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                  Text('Stock: ${p.stock}',
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: p.stock <= 0
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text('$serial',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              if (p.hsncode.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Text('HSN: ${p.hsncode}',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ],
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, size: 18),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _viewProductV2(p),
+                tooltip: AppLocalizations.of(context)!.actionView,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _editProductV2(p),
+                tooltip: AppLocalizations.of(context)!.actionEdit,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              if (widget.user.isAdmin())
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  color: Theme.of(context).colorScheme.error,
+                  onPressed: () => _deleteProductV2(p),
+                  tooltip: AppLocalizations.of(context)!.actionDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // This widget now sizes itself naturally instead of relying on `Expanded`
   // to fill whatever space a bounded ancestor gives it. The list is
   // shrink-wrapped (its own scrolling disabled) because the *page* is
@@ -2539,7 +2634,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
   // squeezed into a fixed box and overflowing when its fixed rows (header +
   // pagination) don't fit, it just reports its true height and the page
   // scrolls further if needed. A naturally-sized widget can't overflow.
-  Widget _tableSectionV2() {
+  Widget _tableSectionV2({bool isMobile = false}) {
     final totalPages = _totalProducts == 0 ? 1 : ((_totalProducts - 1) ~/ _pageSize) + 1;
     return Container(
       decoration: _flatCardDecorationV2(context),
@@ -2547,7 +2642,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _tableHeaderRowV2(),
+          if (!isMobile) _tableHeaderRowV2(),
           _statsLoadingV2 && _products.isEmpty
               ? const SizedBox(
                   height: 240, child: Center(child: CircularProgressIndicator()))
@@ -2557,8 +2652,9 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _products.length,
-                      itemBuilder: (context, index) =>
-                          _tableRowV2(_products[index], index),
+                      itemBuilder: (context, index) => isMobile
+                          ? _productMobileCardV2(_products[index], index)
+                          : _tableRowV2(_products[index], index),
                     ),
           _paginationV2(totalPages),
         ],
@@ -3543,6 +3639,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
             // and if it fits (e.g. only a couple of products), it fits with
             // no extra scrolling — no guessed heights involved anywhere.
             final isNarrow = constraints.maxWidth < 700;
+            final isMobile = constraints.maxWidth < 650;
 
             return Stack(
               children: [
@@ -3581,7 +3678,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       sliver: SliverToBoxAdapter(
-                        child: _tableSectionV2(),
+                        child: _tableSectionV2(isMobile: isMobile),
                       ),
                     ),
                   ],
