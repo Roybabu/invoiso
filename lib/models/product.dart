@@ -17,7 +17,6 @@ class Product {
   bool unlimitedStock;
   bool priceIncludesTax;
   String? barcode; // Barcode/IR code for scanning
-  int lowStockThreshold; // Alert when stock drops to or below this value
 
   Product({
     required this.id,
@@ -36,7 +35,6 @@ class Product {
     this.unlimitedStock = false,
     this.priceIncludesTax = false,
     this.barcode,
-    this.lowStockThreshold = 10,
   });
 
   // Convert a Map into a Product object
@@ -59,7 +57,6 @@ class Product {
       unlimitedStock: (map['unlimited_stock'] ?? 0) == 1,
       priceIncludesTax: (map['price_includes_tax'] ?? 0) == 1,
       barcode: map['barcode'] as String?,
-      lowStockThreshold: (map['low_stock_threshold'] as int?) ?? 10,
     );
   }
 
@@ -102,12 +99,8 @@ class Product {
       'unlimited_stock': unlimitedStock ? 1 : 0,
       'price_includes_tax': priceIncludesTax ? 1 : 0,
       'barcode': barcode,
-      'low_stock_threshold': lowStockThreshold,
     };
   }
-
-  bool get isLowStock =>
-      !unlimitedStock && stock > 0 && stock <= lowStockThreshold;
 
   /// Name to print on PDFs — [aliasName] when [useAlias] is on and set, else [name].
   String displayName(bool useAlias) =>
