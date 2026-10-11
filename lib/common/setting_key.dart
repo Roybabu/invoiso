@@ -95,6 +95,10 @@ enum SettingKey {
   pdfTableHeaderFontSize, // PdfFontSize key for the items table header; empty/absent = same as pdfFontSize
   pdfTableItemsFontSize, // PdfFontSize key for the items table rows; empty/absent = same as pdfFontSize
   pdfTotalsFontSize, // PdfFontSize key for the totals block; empty/absent = same as pdfFontSize
+  invoiceShelfEnabled, // '1' when InvoiceShelf sync is configured and active
+  invoiceShelfBaseUrl, // base URL of the InvoiceShelf instance, e.g. 'https://billing.example.com'
+  invoiceShelfToken, // Sanctum Bearer token (never store the password)
+  invoiceShelfCompanyId, // company header value for multi-tenant InvoiceShelf
 }
 
 extension SettingKeyExtension on SettingKey {
@@ -292,7 +296,14 @@ extension SettingKeyExtension on SettingKey {
         return 'pdf_table_items_font_size';
       case SettingKey.pdfTotalsFontSize:
         return 'pdf_totals_font_size';
-
+      case SettingKey.invoiceShelfEnabled:
+        return 'invoiceshelf_enabled';
+      case SettingKey.invoiceShelfBaseUrl:
+        return 'invoiceshelf_base_url';
+      case SettingKey.invoiceShelfToken:
+        return 'invoiceshelf_token';
+      case SettingKey.invoiceShelfCompanyId:
+        return 'invoiceshelf_company_id';
     }
   }
 }

@@ -83,10 +83,28 @@ Special thanks to [sparsh1220](https://github.com/sparsh1220) for thoroughly tes
 - **Invoice Status Report** — Full invoice list with paid, unpaid, and overdue status; filter chips included.
 - **CSV Export** — One-click CSV export on every report tab.
 
+### Inventory & Purchasing
+- **Supplier Management** — Full CRUD for suppliers with contact details and notes.
+- **Purchase Orders** — Create and manage purchase orders (draft → ordered → received). Mark received to auto-update product stock.
+- **Stock Movement History** — Every stock change (purchase, sale, adjustment, wastage, manual) is logged with before/after quantities and an optional reference.
+- **Low-Stock Alerts** — Configurable per-product threshold; low-stock badge shown in the product list.
+- **Unlimited Stock Mode** — Products like labour or digital services can be marked as unlimited and never show stock depletion.
+
+### Restaurant / Menu
+- **Menu Categories** — Create and manage category groups for your menu items.
+- **Menu Items** — Products with per-item pricing linked to your product catalogue.
+- **Recipe Ingredients** — Optionally link a menu item to ingredient quantities; confirming a sale can auto-deduct stock.
+
 ### Data Management
 - **Customer Management** — Full CRUD with search, sort, and pagination.
 - **Product & Inventory Management** — Full CRUD with search, sort, and pagination.
 - **Backup & Restore** — One-click database backup to any location on your machine.
+
+### Optional InvoiceShelf Integration
+- **Self-hosted sync** — Connect to your own [InvoiceShelf](https://invoiceshelf.com) instance to browse its customers, invoices, and products for reference.
+- **Secure token storage** — Only a Sanctum Bearer token is stored; your password is never saved to disk.
+- **Read-only reference** — No Invoiso data is pushed automatically. All local data stays in Invoiso's SQLite database.
+- **Known limitations**: InvoiceShelf is self-hosted only (no SaaS). The REST API is still alpha (`3.0.0-alpha`). Rate-limited to 60 req/min by the server. See the in-app "Known Limitations" panel for details.
 
 ### Security & Access Control
 - **Multi-User Login** — Username and password authentication with session timeout.
@@ -180,12 +198,15 @@ cd invoiso
 # 2. Install dependencies
 flutter pub get
 
-# 3. Run in debug mode
+# 3. Run tests (requires sqflite_common_ffi — runs on any host, no emulator needed)
+flutter test
+
+# 4. Run in debug mode
 flutter run -d linux      # Linux
 flutter run -d windows    # Windows
 flutter run -d macos      # macOS
 
-# 4. Build a release binary
+# 5. Build a release binary
 flutter build linux --release    # Linux
 flutter build windows --release  # Windows
 flutter build macos --release    # macOS
@@ -214,6 +235,7 @@ Output locations:
 | Image Processing | [image](https://pub.dev/packages/image) |
 | Window Management | [window_manager](https://pub.dev/packages/window_manager) |
 | Security | [crypto](https://pub.dev/packages/crypto) |
+| HTTP Client | [http](https://pub.dev/packages/http) |
 
 ---
 

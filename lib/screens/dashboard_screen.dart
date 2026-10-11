@@ -47,6 +47,7 @@ import 'package:invoiso/screens/auth/login_screen.dart';
 import 'package:invoiso/screens/purchase_order_screen.dart';
 import 'package:invoiso/screens/reports_screen.dart';
 import 'package:invoiso/screens/restaurant_menu_screen.dart';
+import 'package:invoiso/screens/invoiceshelf_sync_screen.dart';
 import 'package:invoiso/screens/stock_movement_screen.dart';
 import 'package:invoiso/screens/supplier_management_screen.dart';
 
@@ -380,6 +381,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return StockMovementScreen(user: _currentUser);
       case 12:
         return RestaurantMenuScreen(user: _currentUser);
+      case 13:
+        return const InvoiceShelfSyncScreen();
       default:
         return Center(
             child:
@@ -855,6 +858,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Icons.swap_vert, 'Stock History'),
                     _buildNavItem(12, Icons.restaurant_menu_outlined,
                         Icons.restaurant_menu, 'Menu'),
+                    _buildNavItem(13, Icons.cloud_sync_outlined,
+                        Icons.cloud_sync, 'InvoiceShelf'),
                   ],
                 ),
               ),
